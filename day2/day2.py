@@ -44,6 +44,23 @@ def me2play(me):
     raise Exception(me)
 
 
+def gimme_me(opponent, strategy):
+    if strategy == "Y":  # draw
+        return opponent
+    if strategy == "X":  # lose
+        if opponent == Janken.Rock:
+            return Janken.Scissors
+        if opponent == Janken.Paper:
+            return Janken.Rock
+        return Janken.Paper
+    # Z = win
+    if opponent == Janken.Rock:
+        return Janken.Paper
+    if opponent == Janken.Paper:
+        return Janken.Scissors
+    return Janken.Rock
+
+
 def main():
     file = open('input', 'r')
     lines = file.readlines()
@@ -52,9 +69,9 @@ def main():
         line = line.rstrip()
         if line == '':
             break
-        [opponent, me] = line.split(" ")
+        [opponent, strategy] = line.split(" ")
         opponent = opponent2play(opponent)
-        me = me2play(me)
+        me = gimme_me(opponent, strategy)
         score += battle_score(opponent, me) + me.value
     print('my score would be: ' + str(score))
 
