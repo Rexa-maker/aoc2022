@@ -29,11 +29,9 @@ def move_crates(crates, steps):
         how_many = int(m.group(1))
         where_from = int(m.group(2)) - 1
         where_to = int(m.group(3)) - 1
-        while how_many > 0:
-            how_many -= 1
-            crate = crates[where_from][0]
-            crates[where_from] = crates[where_from][1:]
-            crates[where_to] = [crate] + crates[where_to]
+        stack = crates[where_from][0:how_many]
+        crates[where_from] = crates[where_from][how_many:]
+        crates[where_to] = stack + crates[where_to]
 
 
 def main():
