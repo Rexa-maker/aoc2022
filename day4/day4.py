@@ -3,8 +3,12 @@ def fully_contains(range1, range2):
             (range2[0] <= range1[0] and range2[1] >= range1[1]))
 
 
+def overlaps(range1, range2):
+    return not (range1[1] < range2[0] or range2[1] < range1[0])
+
 def main():
     contained_count = 0
+    overlap_count = 0
 
     file = open('input', 'r')
     lines = file.readlines()
@@ -20,7 +24,11 @@ def main():
         if fully_contains(range1, range2):
             contained_count += 1
 
+        if overlaps(range1, range2):
+            overlap_count += 1
+
     print('fully contained pairs: ' + str(contained_count))
+    print('overlapping pairs: ' + str(overlap_count))
 
 
 if __name__ == '__main__':
