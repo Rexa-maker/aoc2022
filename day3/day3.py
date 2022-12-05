@@ -14,17 +14,30 @@ def find_dup_item(bag):
             return item
 
 
+def find_common_item(lines):
+    for item in lines[0]:
+        if item in lines[1] and item in lines[2]:
+            return item
+
+
 def main():
+    badges_tally = 0
+
     file = open('input', 'r')
     lines = file.readlines()
     priority_tally = 0
+    trio = []
     for line in lines:
         line = line.rstrip()
         if line == '':
             break
-        dup_item = find_dup_item(line)
-        priority_tally += priority_of(dup_item)
-    print('priority tally: ' + str(priority_tally))
+
+        trio.append(line)
+        if (len(trio) == 3):
+            badges_tally += priority_of(find_common_item(trio))
+            trio = []
+
+    print('badges tally: ' + str(badges_tally))
 
 
 if __name__ == '__main__':
