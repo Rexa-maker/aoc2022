@@ -13,7 +13,7 @@ def main():
                 all_different = False
                 four = four[i+1:]
                 break
-        if all_different and len(four) == 4:
+        if all_different and len(four) == 14:
             print("Got signal at count {}".format(count))
             return
 
