@@ -4,10 +4,10 @@ from functools import reduce
 def main():
     unit_test()
 
-    file = open('input', 'r')
-    lines = file.readlines()
-    keep_away = KeepAway.parse_input(lines)
-    print(keep_away.monkey_business_after_X_rounds(20))
+    # file = open('input', 'r')
+    # lines = file.readlines()
+    # keep_away = KeepAway.parse_input(lines)
+    # print(keep_away.monkey_business_after_X_rounds(20))
 
 
 class Monkey:
@@ -27,29 +27,17 @@ class Monkey:
             yield item
 
     def inspect_item(self, item):
-        print("item before: " + str(item))
-        print("item after op before /3: " + str(self.operation(item)))
         item = int(self.operation(item) / 3)
         destination_monkey = self.test(item)
         self.inspections += 1
-        print("item after: " + str(item) + " over to " + str(destination_monkey))
         return destination_monkey, item
 
     def __str__(self):
         return ", ".join([str(item) for item in self.items]) if self.items else ""
 
-    # I tried using lambdas but it got weird
-
-
-class KeepAway:
-    FOCUS_MONKEYS_COUNT = 2
-
     @staticmethod
     def parse_input(lines):
-        monkeys = []
-
         for line in lines:
-            line = line.rstrip()
             if "Monkey" in line:
                 pass
             elif "Starting items:" in line:
@@ -58,16 +46,13 @@ class KeepAway:
             elif "Operation: new = old" in line:
                 line = line[line.index("d") + 2:]
                 operator, other = line.split(" ")
-                # print("op {} other {}".format(operator, other))
                 fun = (lambda x, y : x * y) if operator == "*" else (lambda x, y : x + y)
-                # print("fun(79) = {}".format(str(fun(79, int(other)))))
                 try:
                     other = int(other)
                     operation = (lambda x : x * other) if operator == "*" else (lambda x : x + other)
                 except:
                     # Assume operation is between x and x if cannot parse int
-                    operation = lambda x : (lambda x : x * x) if operator == "*" else (lambda x : x + x)
-                # print("operation(79) = {}".format(str(operation(79))))
+                    operation = (lambda x : x * x) if operator == "*" else (lambda x : x + x)
             elif "Test: divisible by" in line:
                 divisible_by = int(line[line.index('y') + 1:])
                 test_fun = lambda x : x % divisible_by == 0
@@ -76,10 +61,24 @@ class KeepAway:
             elif "If false: throw to monkey" in line:
                 target_false = int(line[line.index("y") + 1:])
                 test = lambda x : target_true if test_fun(x) else target_false
+        return Monkey(items=items, operation=operation, test=test)
+
+
+class KeepAway:
+    FOCUS_MONKEYS_COUNT = 2
+
+    @staticmethod
+    def parse_input(lines):
+        monkeys = []
+        monkey_lines = []
+
+        for line in lines:
+            line = line.rstrip()
+            if len(line) == 0:
+                monkeys += [Monkey.parse_input(monkey_lines)]
+                monkey_lines = []
             else:
-                # Can't parse, generate monkey
-                monkeys += [Monkey(items=items, operation=operation, test=test)]
-                print("mokey[0].operation(79) = {}".format(int(monkeys[0].operation(79))))
+                monkey_lines += [line]
 
         return KeepAway(monkeys=monkeys)
 
@@ -141,9 +140,6 @@ Monkey 3:
 
 """
     keep_away = KeepAway.parse_input(example_input.splitlines())
-    print(keep_away)
-    keep_away.round()
-    print(keep_away)
     assert(keep_away.monkey_business_after_X_rounds(20) == 10605)
 
 
