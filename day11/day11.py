@@ -6,11 +6,15 @@ def main():
 
     file = open('input', 'r')
     lines = file.readlines()
-    keep_away = KeepAway.parse_input(lines)
+    keep_away = KeepAway.parse_input(lines, worried_hooman=False)
     print("Monkey business after 20 rounds: " + str(keep_away.monkey_business_after_X_rounds(20)))
+    keep_away = KeepAway.parse_input(lines, worried_hooman=True)
+    print("Monkey business after 10000 rounds: " + str(keep_away.monkey_business_after_X_rounds(10000)))
 
 
 class Monkey:
+    WORRIED_HOOMAN = False
+
     def __init__(self, items, operation, test):
         self.inspections = 0
         self.items = items
@@ -27,7 +31,9 @@ class Monkey:
             yield item
 
     def inspect_item(self, item):
-        item = int(self.operation(item) / 3)
+        item = self.operation(item)
+        if not Monkey.WORRIED_HOOMAN:
+            item = int(item / 3)
         destination_monkey = self.test(item)
         self.inspections += 1
         return destination_monkey, item
@@ -49,10 +55,10 @@ class Monkey:
                 fun = (lambda x, y : x * y) if operator == "*" else (lambda x, y : x + y)
                 try:
                     other = int(other)
-                    operation = (lambda x : x * other) if operator == "*" else (lambda x : x + other)
+                    operation = lambda x : fun(x, other)
                 except:
                     # Assume operation is between x and x if cannot parse int
-                    operation = (lambda x : x * x) if operator == "*" else (lambda x : x + x)
+                    operation = lambda x : fun(x, x)
             elif "Test: divisible by" in line:
                 divisible_by = int(line[line.index('y') + 1:])
                 test_fun = lambda x : x % divisible_by == 0
@@ -106,7 +112,7 @@ class KeepAway:
         return self.monkey_business
 
     def __str__(self):
-        return "\n".join(["Monkey {}: {}".format(str(idx), monkey) for idx, monkey in enumerate(self.monkeys)])
+        return "\n".join(["Monkey {} inpected {} times: {}".format(str(idx), str(monkey.inspections), monkey) for idx, monkey in enumerate(self.monkeys)])
 
 
 def unit_test():
@@ -138,9 +144,21 @@ Monkey 3:
     If true: throw to monkey 0
     If false: throw to monkey 1
 
-"""
-    keep_away = KeepAway.parse_input(example_input.splitlines())
+""".splitlines()
+    keep_away = KeepAway.parse_input(example_input)
     assert(keep_away.monkey_business_after_X_rounds(20) == 10605)
+    Monkey.WORRIED_HOOMAN = True
+    keep_away = KeepAway.parse_input(example_input)
+    keep_away.monkey_business_after_X_rounds(1)
+    print("1: " + str(keep_away))
+    keep_away.monkey_business_after_X_rounds(19)
+    print("20: " + str(keep_away))
+    keep_away.monkey_business_after_X_rounds(80)
+    print("100: " + str(keep_away))
+    keep_away.monkey_business_after_X_rounds(880)
+    print("1000: " + str(keep_away))
+    assert(keep_away.monkey_business_after_X_rounds(10000) == 2713310158)
+    print("unit tests passed")
 
 
 if __name__ == '__main__':
