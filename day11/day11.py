@@ -4,10 +4,10 @@ from functools import reduce
 def main():
     unit_test()
 
-    # file = open('input', 'r')
-    # lines = file.readlines()
-    # keep_away = KeepAway.parse_input(lines)
-    # print(keep_away.monkey_business_after_X_rounds(20))
+    file = open('input', 'r')
+    lines = file.readlines()
+    keep_away = KeepAway.parse_input(lines)
+    print("Monkey business after 20 rounds: " + str(keep_away.monkey_business_after_X_rounds(20)))
 
 
 class Monkey:
