@@ -31,10 +31,12 @@ class HillClimbing:
                     continue
                 yield (self.x, y)
 
-        def update_neighbors_steps(self):
+        def update_neighbors_steps(self) -> set:
             print("exploring x {} y {} shortest steps {} altitude {}".format(str(self.x), str(self.y), str(self.shortest_steps), str(self.altitude)))
             assert(self.shortest_steps is not None)  # Do not call on an unexplored elevation
+            neighbors_to_update = set()
             for neighbor in self.iter_neighbors():
+                print("getting neighbor x {} y {}".format(str(neighbor[0]), str(neighbor[1])))
                 neighbor = self.hill_climbing.elevations[neighbor[1]][neighbor[0]]
                 print("considering neighbor x {} y {} altitude {}".format(str(neighbor.x), str(neighbor.y), str(neighbor.altitude)))
                 if self.altitude - neighbor.altitude <= 1:  # Can we climb to self from neighbor
@@ -42,7 +44,8 @@ class HillClimbing:
                     if not neighbor.shortest_steps or neighbor.shortest_steps > self.shortest_steps + 1:
                         neighbor.shortest_steps = self.shortest_steps + 1
                         # Re-update neighbor's
-                        neighbor.update_neighbors_steps()
+                        neighbors_to_update.add(neighbor)
+            return neighbors_to_update
 
         def __str__(self):
             return str(self.altitude)
@@ -76,7 +79,13 @@ class HillClimbing:
     def shortest_steps(self):
         end = self.elevations[self.end[1]][self.end[0]]
         end.shortest_steps = 0
-        end.update_neighbors_steps()
+        neighbors_to_update = end.update_neighbors_steps()
+        while True:
+            if len(neighbors_to_update) == 0:
+                break
+            neighbor = neighbors_to_update.pop()
+            neighbors_to_update = neighbors_to_update.union(neighbor.update_neighbors_steps())
+
         return self.elevations[self.start[1]][self.start[1]].shortest_steps
 
     def __str__(self):
