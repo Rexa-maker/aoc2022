@@ -5,8 +5,10 @@ def main():
     lines = file.readlines()
 
     hill_climbing = HillClimbing(lines)
-    shortest_steps = hill_climbing.shortest_steps()
+    shortest_steps = hill_climbing.shortest_steps_from_start()
     print("Shortest steps from start: {}".format(str(shortest_steps)))
+    shortest_steps = hill_climbing.shortest_steps_from_any_low()
+    print("Shortest steps from any low: {}".format(str(shortest_steps)))
 
 
 class HillClimbing:
@@ -78,7 +80,7 @@ class HillClimbing:
                 col_idx += 1
             row_idx += 1
 
-    def shortest_steps(self):
+    def discover_all_shortest_steps(self):
         end = self.elevations[self.end[1]][self.end[0]]
         end.shortest_steps = 0
         neighbors_to_update = end.update_neighbors_steps()
@@ -88,7 +90,20 @@ class HillClimbing:
             neighbor = neighbors_to_update.pop()
             neighbors_to_update = neighbors_to_update.union(neighbor.update_neighbors_steps())
 
+    def shortest_steps_from_start(self):
+        self.discover_all_shortest_steps()
         return self.elevations[self.start[1]][self.start[0]].shortest_steps
+
+    def shortest_steps_from_any_low(self):
+        self.discover_all_shortest_steps()
+        shortest_steps = None
+        for x in range(self.width):
+            for y in range(self.height):
+                elevation = self.elevations[y][x]
+                if elevation.altitude == 0 and elevation.shortest_steps is not None and (shortest_steps is None or elevation.shortest_steps < shortest_steps):
+                    shortest_steps = elevation.shortest_steps
+        return shortest_steps
+
 
     def __str__(self):
         lines = [[str(self.elevations[y][x]) for x in range(self.width)] for y in range(self.height)]
@@ -110,9 +125,10 @@ abdefghi
     hill_climbing = HillClimbing(example_input)
     assert(hill_climbing.width == 8)
     assert(hill_climbing.height == 5)
-    print(hill_climbing)
-    shortest_steps = hill_climbing.shortest_steps()
+    shortest_steps = hill_climbing.shortest_steps_from_start()
     assert(shortest_steps == 31)
+    shortest_steps = hill_climbing.shortest_steps_from_any_low()
+    assert(shortest_steps == 29)
     print("unit tests passed")
 
 
