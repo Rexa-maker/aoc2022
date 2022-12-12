@@ -15,6 +15,7 @@ class HillClimbing:
     MIN_ELEVATION = ord('a') - ord('a')
     MAX_ELEVATION = ord('z') - ord('a')
 
+
     class Elevation:
         def __init__(self, x, y, altitude, hill_climbing):
             self.x = x
@@ -35,13 +36,10 @@ class HillClimbing:
 
         def update_neighbors_steps(self):
             """ Return a set of the neighbors to re-explore """
-            print("exploring x {} y {} shortest steps {} altitude {}".format(str(self.x), str(self.y), str(self.shortest_steps), str(self.altitude)))
             assert(self.shortest_steps is not None)  # Do not call on an unexplored elevation
             neighbors_to_update = set()
             for neighbor in self.iter_neighbors():
-                print("getting neighbor x {} y {}".format(str(neighbor[0]), str(neighbor[1])))
                 neighbor = self.hill_climbing.elevations[neighbor[1]][neighbor[0]]
-                print("considering neighbor x {} y {} altitude {}".format(str(neighbor.x), str(neighbor.y), str(neighbor.altitude)))
                 if self.altitude - neighbor.altitude <= 1:  # Can we climb (or fall) to self from neighbor
                     neighbor_visited = neighbor.shortest_steps is not None
                     if not neighbor.shortest_steps or neighbor.shortest_steps > self.shortest_steps + 1:
@@ -50,17 +48,13 @@ class HillClimbing:
                         neighbors_to_update.add(neighbor)
             return neighbors_to_update
 
-        def __str__(self):
-            return str(self.altitude)
 
     def __init__(self, input):
         self.parse_input(input)
-        print(self)
 
     def parse_input(self, input):
         self.width = len(input[0].rstrip())
         self.height = len(input)
-        print("{}x{}".format(str(self.width), str(self.height)))
         # Access with [y][x] or [row_idx][col_idx]
         self.elevations = [[None for x in range(self.width)] for y in range(self.height)]
         row_idx = 0
@@ -104,13 +98,6 @@ class HillClimbing:
                     shortest_steps = elevation.shortest_steps
         return shortest_steps
 
-
-    def __str__(self):
-        lines = [[str(self.elevations[y][x]) for x in range(self.width)] for y in range(self.height)]
-        res = ""
-        for line in lines:
-            res += str(line) + "\n"
-        return res
 
 def unit_test():
     assert(HillClimbing.MIN_ELEVATION == 0)
