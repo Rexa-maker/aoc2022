@@ -31,7 +31,8 @@ class HillClimbing:
                     continue
                 yield (self.x, y)
 
-        def update_neighbors_steps(self) -> set:
+        def update_neighbors_steps(self):
+            """ Return a set of the neighbors to re-explore """
             print("exploring x {} y {} shortest steps {} altitude {}".format(str(self.x), str(self.y), str(self.shortest_steps), str(self.altitude)))
             assert(self.shortest_steps is not None)  # Do not call on an unexplored elevation
             neighbors_to_update = set()
@@ -39,11 +40,11 @@ class HillClimbing:
                 print("getting neighbor x {} y {}".format(str(neighbor[0]), str(neighbor[1])))
                 neighbor = self.hill_climbing.elevations[neighbor[1]][neighbor[0]]
                 print("considering neighbor x {} y {} altitude {}".format(str(neighbor.x), str(neighbor.y), str(neighbor.altitude)))
-                if self.altitude - neighbor.altitude <= 1:  # Can we climb to self from neighbor
+                if self.altitude - neighbor.altitude <= 1:  # Can we climb (or fall) to self from neighbor
                     neighbor_visited = neighbor.shortest_steps is not None
                     if not neighbor.shortest_steps or neighbor.shortest_steps > self.shortest_steps + 1:
                         neighbor.shortest_steps = self.shortest_steps + 1
-                        # Re-update neighbor's
+                        # Re-explore update
                         neighbors_to_update.add(neighbor)
             return neighbors_to_update
 
@@ -52,6 +53,7 @@ class HillClimbing:
 
     def __init__(self, input):
         self.parse_input(input)
+        print(self)
 
     def parse_input(self, input):
         self.width = len(input[0].rstrip())
@@ -86,7 +88,7 @@ class HillClimbing:
             neighbor = neighbors_to_update.pop()
             neighbors_to_update = neighbors_to_update.union(neighbor.update_neighbors_steps())
 
-        return self.elevations[self.start[1]][self.start[1]].shortest_steps
+        return self.elevations[self.start[1]][self.start[0]].shortest_steps
 
     def __str__(self):
         lines = [[str(self.elevations[y][x]) for x in range(self.width)] for y in range(self.height)]
