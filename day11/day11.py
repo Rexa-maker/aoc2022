@@ -6,20 +6,23 @@ def main():
 
     file = open('input', 'r')
     lines = file.readlines()
-    keep_away = KeepAway.parse_input(lines, worried_hooman=False)
+    Monkey.WORRIED_HOOMAN = False
+    keep_away = KeepAway.parse_input(lines)
     print("Monkey business after 20 rounds: " + str(keep_away.monkey_business_after_X_rounds(20)))
-    keep_away = KeepAway.parse_input(lines, worried_hooman=True)
+    Monkey.WORRIED_HOOMAN = True
+    keep_away = KeepAway.parse_input(lines)
     print("Monkey business after 10000 rounds: " + str(keep_away.monkey_business_after_X_rounds(10000)))
 
 
 class Monkey:
     WORRIED_HOOMAN = False
 
-    def __init__(self, items, operation, test):
+    def __init__(self, items, operation, destination_monkeys, divisible_by):
         self.inspections = 0
         self.items = items
         self.operation = operation
-        self.test = test
+        self.destination_monkeys = destination_monkeys
+        self.divisible_by = divisible_by
 
     def receive_item(self, item):
         self.items += [item]
@@ -34,7 +37,7 @@ class Monkey:
         item = self.operation(item)
         if not Monkey.WORRIED_HOOMAN:
             item = int(item / 3)
-        destination_monkey = self.test(item)
+        destination_monkey = self.destination_monkeys[0] if item % self.divisible_by == 0 else self.destination_monkeys[1]
         self.inspections += 1
         return destination_monkey, item
 
@@ -67,7 +70,7 @@ class Monkey:
             elif "If false: throw to monkey" in line:
                 target_false = int(line[line.index("y") + 1:])
                 test = lambda x : target_true if test_fun(x) else target_false
-        return Monkey(items=items, operation=operation, test=test)
+        return Monkey(items=items, operation=operation, destination_monkeys=[target_true, target_false], divisible_by=divisible_by)
 
 
 class KeepAway:
@@ -91,11 +94,13 @@ class KeepAway:
 
     def __init__(self, monkeys):
         self.monkeys = monkeys
+        self.all_divisible_by = reduce(lambda x, y: x * y, [monkey.divisible_by for monkey in monkeys])
 
     def round(self):
         for monkey in self.monkeys:
             for item in monkey:
                 destination_monkey, item = monkey.inspect_item(item)
+                item = item % self.all_divisible_by
                 self.monkeys[destination_monkey].receive_item(item)
 
     @property
@@ -147,16 +152,9 @@ Monkey 3:
 """.splitlines()
     keep_away = KeepAway.parse_input(example_input)
     assert(keep_away.monkey_business_after_X_rounds(20) == 10605)
+
     Monkey.WORRIED_HOOMAN = True
     keep_away = KeepAway.parse_input(example_input)
-    keep_away.monkey_business_after_X_rounds(1)
-    print("1: " + str(keep_away))
-    keep_away.monkey_business_after_X_rounds(19)
-    print("20: " + str(keep_away))
-    keep_away.monkey_business_after_X_rounds(80)
-    print("100: " + str(keep_away))
-    keep_away.monkey_business_after_X_rounds(880)
-    print("1000: " + str(keep_away))
     assert(keep_away.monkey_business_after_X_rounds(10000) == 2713310158)
     print("unit tests passed")
 
