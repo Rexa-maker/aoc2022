@@ -1,6 +1,14 @@
 def main():
     unit_test()
 
+    file = open('input', 'r')
+    lines = file.readlines()
+
+    hill_climbing = HillClimbing(lines)
+    shortest_steps = hill_climbing.shortest_steps()
+    print("Shortest steps from start: {}".format(str(shortest_steps)))
+
+
 class HillClimbing:
     MIN_ELEVATION = ord('a') - ord('a')
     MAX_ELEVATION = ord('z') - ord('a')
@@ -93,7 +101,6 @@ abdefghi
     assert(hill_climbing.height == 5)
     print(hill_climbing)
     shortest_steps = hill_climbing.shortest_steps()
-    print("shortest from start {}".format(str(shortest_steps)))
     assert(shortest_steps == 31)
     print("unit tests passed")
 
