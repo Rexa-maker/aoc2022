@@ -42,7 +42,7 @@ class HillClimbing:
                 neighbor = self.hill_climbing.elevations[neighbor[1]][neighbor[0]]
                 if self.altitude - neighbor.altitude <= 1:  # Can we climb (or fall) to self from neighbor
                     neighbor_visited = neighbor.shortest_steps is not None
-                    if not neighbor.shortest_steps or neighbor.shortest_steps > self.shortest_steps + 1:
+                    if neighbor.shortest_steps is None or neighbor.shortest_steps > self.shortest_steps + 1:
                         neighbor.shortest_steps = self.shortest_steps + 1
                         # Re-explore update
                         neighbors_to_update.add(neighbor)
