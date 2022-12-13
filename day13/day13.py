@@ -22,18 +22,15 @@ class Packet:
         self.array = json.loads(line)
 
     def compare(self, other_packet: "Packet"):  # return -1 if wrong, 0 if continue, 1 if right
-        print("considering {} vs {}".format(self.array, other_packet.array))
         if len(self.array) == 0:
-            print("left empty: True")
             if len(other_packet.array) == 0:
-                # both empty, to the next one
+                # both empty, we have equality!
                 return 0
             # if left runs out of item before right, the order's correct
             return 1
 
         if len(other_packet.array) == 0:
-            print("right empty: False")
-            # if right runs out before left
+            # if right runs out before left, the order's wrong
             return -1
 
         left = self.array[0]
@@ -61,10 +58,8 @@ class Packet:
                 return Packet(left_rest).compare(Packet(right_rest))
             # both are integer
             if left < right:
-                print("Smaller int left: True")
                 return 1
             if left > right:
-                print("Bigger int left: False")
                 return -1
             return Packet(left_rest).compare(Packet(right_rest))
 
@@ -75,7 +70,6 @@ def solve(input):
     pair = [None, None]
 
     for line in input:
-        print("line {} idx {}".format(line, str(index)))
         line = line.rstrip()
         if len(line) == 0:
             continue
@@ -84,10 +78,8 @@ def solve(input):
             pair[0] = Packet(line)
         else:
             pair[1] = Packet(line)
-            print("{} <= {}? {}".format(pair[0].array, pair[1].array, pair[0].compare(pair[1])))
             if pair[0].compare(pair[1]) >= 0:
                 indices_sum += index
-                print("correct index {}".format(str(index)))
             pair = [None, None]
             index += 1
 
