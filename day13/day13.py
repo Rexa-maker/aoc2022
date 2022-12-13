@@ -1,22 +1,73 @@
+import json
+
+
 def main():
     unit_test()
 
     file = open('input', 'r')
     lines = file.readlines()
+    sum_of_correct_indices = solve(lines)
+    print("Sum of correct indices: {}".format(str(sum_of_correct_indices)))
+
 
 class Packet:
-    def __init__(self, line):
-        self.parse_line(line)
+    def __init__(self, input):
+        if isinstance(input, str):
+            self.parse_line(input)
+        else:
+            assert(isinstance(input, list))
+            self.array = input
 
     def parse_line(self, line):
-        self.array = []
-        line = line.replace('[', '').replace(']', '').rstrip().split(',')
-        for d in line:
-            print('{}'.format(d))
-            self.array += [int(d)]
+        self.array = json.loads(line)
 
-    def __lt__(self, other_packet):
-        return self.array < other_packet.array
+    def compare(self, other_packet: "Packet"):  # return -1 if wrong, 0 if continue, 1 if right
+        print("considering {} vs {}".format(self.array, other_packet.array))
+        if len(self.array) == 0:
+            print("left empty: True")
+            if len(other_packet.array) == 0:
+                # both empty, to the next one
+                return 0
+            # if left runs out of item before right, the order's correct
+            return 1
+
+        if len(other_packet.array) == 0:
+            print("right empty: False")
+            # if right runs out before left
+            return -1
+
+        left = self.array[0]
+        left_rest = self.array[1:]
+        right = other_packet.array[0]
+        right_rest = other_packet.array[1:]
+        if isinstance(left, list):
+            if isinstance(right, list):
+                # both are lists
+                first_compare = Packet(left).compare(Packet(right))
+                if first_compare != 0:
+                    return first_compare
+                return Packet(left_rest).compare(Packet(right_rest))
+            # left is list, right is integer
+            first_compare = Packet(left).compare(Packet([right]))
+            if first_compare != 0:
+                return first_compare
+            return Packet(left_rest).compare(Packet(right_rest))
+        else:
+            if isinstance(other_packet.array[0], list):
+                # left is integer, right is list
+                first_compare = Packet([left]).compare(Packet(right))
+                if first_compare != 0:
+                    return first_compare
+                return Packet(left_rest).compare(Packet(right_rest))
+            # both are integer
+            if left < right:
+                print("Smaller int left: True")
+                return 1
+            if left > right:
+                print("Bigger int left: False")
+                return -1
+            return Packet(left_rest).compare(Packet(right_rest))
+
 
 def solve(input):
     index = 1
@@ -24,20 +75,23 @@ def solve(input):
     pair = [None, None]
 
     for line in input:
+        print("line {} idx {}".format(line, str(index)))
         line = line.rstrip()
         if len(line) == 0:
-            pair = [None, None]
             continue
 
         if pair[0] is None:
             pair[0] = Packet(line)
         else:
             pair[1] = Packet(line)
-            if pair[0] < pair[1]:
+            print("{} <= {}? {}".format(pair[0].array, pair[1].array, pair[0].compare(pair[1])))
+            if pair[0].compare(pair[1]) >= 0:
                 indices_sum += index
+                print("correct index {}".format(str(index)))
+            pair = [None, None]
             index += 1
 
-    return index
+    return indices_sum
 
 
 def unit_test():
