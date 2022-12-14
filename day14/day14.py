@@ -2,9 +2,9 @@ from enum import Enum
 import numpy as np
 
 
-WIDTH = 200  # from a glance a the input
+WIDTH = 400  # from a glance a the input
 HEIGHT = 200
-W_OFFSET = 400  # value to be removed from all x coordinate from input
+W_OFFSET = int(500 - WIDTH / 2)  # value to be removed from all x coordinate from input
 SAND_START = [500 - W_OFFSET, 0]
 
 
@@ -16,6 +16,9 @@ def main():
     t = Topology(lines)
     sand_units = t.drop_sand()
     print("Sand units: {}".format(sand_units))
+    t = Topology(lines, floor=True)
+    sand_units = t.drop_sand()
+    print("Sand units with floor: {}".format(sand_units))
 
 
 class Topology:
@@ -24,16 +27,22 @@ class Topology:
         ROCK = 1
         SAND = 2
 
-    def __init__(self, input):
+    def __init__(self, input, floor=False):
+        self.haz_floor = False
         self.topology = [[Topology.Material.AIR for x in range(WIDTH)] for y in range(HEIGHT)]
         self.parse(input)
+        if floor:
+            self._insert_floor()
 
     def parse(self, input):
+        self.deepest_rock_y = 0
         for line in input:
             line = line.rstrip().split(" -> ")
             prev_pair = None
             for pair in line:
                 next_pair = list(map(lambda i: int(i), pair.split(",")))
+                if next_pair[1] > self.deepest_rock_y:
+                    self.deepest_rock_y = next_pair[1]
                 next_pair[0] -= W_OFFSET
                 if prev_pair is None:
                     prev_pair = next_pair
@@ -43,15 +52,23 @@ class Topology:
                 if x_diff != 0:
                     sign = np.sign(x_diff)
                     for x in range(prev_pair[0], next_pair[0] + sign, sign):
-                        self.topology[next_pair[1]][x] = Topology.Material.ROCK
+                        self.set_material([x, next_pair[1]], Topology.Material.ROCK)
                 else:
                     sign = np.sign(y_diff)
                     for y in range(prev_pair[1], next_pair[1] + sign, sign):
-                        self.topology[y][next_pair[0]] = Topology.Material.ROCK
+                        self.set_material([next_pair[0], y], Topology.Material.ROCK)
                 prev_pair = next_pair
+
+    def _insert_floor(self):
+        for x in range(WIDTH):
+            self.set_material([x, self.deepest_rock_y + 2], Topology.Material.ROCK)
+        self.haz_floor = True
 
     def get_material(self, coordinates):
         return self.topology[coordinates[1]][coordinates[0]]
+
+    def set_material(self, coordinates, material):
+         self.topology[coordinates[1]][coordinates[0]] = material
 
     def _drop_one_sand(self):
         sand = SAND_START
@@ -66,16 +83,25 @@ class Topology:
                     moved = True
                     break
         if not moved:
-            self.topology[sand[1]][sand[0]] = Topology.Material.SAND
-        return sand[1] >= HEIGHT - 1
+            self.set_material(sand, Topology.Material.SAND)
+        if not self.haz_floor:
+            return sand[1] >= HEIGHT - 1
+        else:
+            return sand == SAND_START
 
     def drop_sand(self):
         count = 0
         while True:
-            fell_out = self._drop_one_sand()
-            if fell_out:
-                break
-            count += 1
+            if not self.haz_floor:
+                fell_out = self._drop_one_sand()
+                if fell_out:
+                    break
+                count += 1
+            else:
+                count += 1
+                filled_up = self._drop_one_sand()
+                if filled_up:
+                    break
 
         return count
 
@@ -105,6 +131,9 @@ def unit_test():
     t = Topology(example_input)
     sand_units = t.drop_sand()
     assert(sand_units == 24)
+    t = Topology(example_input, floor=True)
+    sand_units = t.drop_sand()
+    assert(sand_units == 93)
     print("unit tests passed")
 
 
