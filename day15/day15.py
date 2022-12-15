@@ -7,6 +7,13 @@ LINE_REGEXP = re.compile("^Sensor at x=(.+), y=(.+): closest beacon is at x=(.+)
 def main():
     unit_tests()
 
+    file = open('input', 'r')
+    lines = file.readlines()
+    caves = Caves(lines)
+    beaconless_on_row = caves.how_many_beaconless_on_row(2000000)
+    print("# of beaconless spots on row 2000000: {}".format(beaconless_on_row))
+
+
 
 class Caves:
     class Sensor:
@@ -17,28 +24,57 @@ class Caves:
         def __str__(self):
             return str(self.position) + " sees " + str(self.closest_beacon)
 
+        @property
+        def scanned_distance(self):
+            return abs(self.position[0] - self.closest_beacon[0]) + abs(self.position[1] - self.closest_beacon[1])
+
+        def which_can_see_on_row(self, row):
+            """ Return a set of the spots on a row that sensor can see (not counting any potentially found beacon there) """
+            visible = set()
+            vertical_distance = abs(row - self.position[1])
+            vertical_spare = self.scanned_distance - vertical_distance
+            if vertical_spare < 0:
+                return visible
+            # The spot aligned vertically is visible for sure
+            visible.add((self.position[0], row))
+            for x in range(1, vertical_spare + 1):
+                for multiplier in [-1, 1]:
+                    visible.add((self.position[0] + multiplier * x, row))
+
+            return visible
+
     def __init__(self, input):
+        self.sensors : list(Caves.Sensor) = []
         self.parse(input)
 
     def parse(self, input):
-        self.sensors = []
         for line in input:
             line = line.rstrip()
             if not line:
                 continue
             m = LINE_REGEXP.match(line)
             assert(m)
-            sensor_position = [int(m.group(1)), int(m.group(2))]
-            closest_beacon = [int(m.group(3)), int(m.group(4))]
+            sensor_position = (int(m.group(1)), int(m.group(2)))
+            closest_beacon = (int(m.group(3)), int(m.group(4)))
             sensor = Caves.Sensor(position=sensor_position, closest_beacon=closest_beacon)
             self.sensors += [sensor]
+
+    def how_many_beaconless_on_row(self, row):
+        beacons_on_row = set()
+        visible_on_row = set()
+        for sensor in self.sensors:
+            if sensor.closest_beacon[1] == row:
+                beacons_on_row.add(sensor.closest_beacon)
+            visible_on_row = visible_on_row.union(sensor.which_can_see_on_row(row))
+        beaconless_on_row = visible_on_row - beacons_on_row
+        return len(beaconless_on_row)
+
 
     def __str__(self):
         res = ""
         for sensor in self.sensors:
             res += str(sensor) + "\n"
         return res
-
 
 
 def unit_tests():
@@ -59,7 +95,8 @@ Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3
 """
     caves = Caves(example_input.splitlines())
-    print(caves)
+    beaconless_on_row = caves.how_many_beaconless_on_row(10)
+    assert(beaconless_on_row == 26)
 
 if __name__ == "__main__":
     main()
