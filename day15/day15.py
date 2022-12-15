@@ -12,7 +12,8 @@ def main():
     caves = Caves(lines)
     beaconless_on_row = caves.how_many_beaconless_on_row(2000000)
     print("# of beaconless spots on row 2000000: {}".format(beaconless_on_row))
-
+    distress_beacon = Caves.Beacon(caves.find_distress_beacon(max_coordinate=4000000))
+    print("Distress beacon's tuning frequency: {}".format(distress_beacon.tuning_frequency))
 
 
 class Caves:
@@ -28,20 +29,35 @@ class Caves:
         def scanned_distance(self):
             return abs(self.position[0] - self.closest_beacon[0]) + abs(self.position[1] - self.closest_beacon[1])
 
-        def which_can_see_on_row(self, row):
+        @staticmethod
+        def coordinates_within_bounds(candidate, bound_coordinates):
+            return candidate[0] >= bound_coordinates[0] and \
+                   candidate[0] <= bound_coordinates[1] and \
+                   candidate[1] >= bound_coordinates[0] and \
+                   candidate[1] <= bound_coordinates[1]
+
+        def which_can_see_on_row(self, row, bound_coordinates=None):
             """ Return a set of the spots on a row that sensor can see (not counting any potentially found beacon there) """
             visible = set()
             vertical_distance = abs(row - self.position[1])
             vertical_spare = self.scanned_distance - vertical_distance
             if vertical_spare < 0:
                 return visible
-            # The spot aligned vertically is visible for sure
-            visible.add((self.position[0], row))
-            for x in range(1, vertical_spare + 1):
+            for delta_x in range(vertical_spare + 1):  # Add the center twice I don't care
                 for multiplier in [-1, 1]:
-                    visible.add((self.position[0] + multiplier * x, row))
+                    candidate = (self.position[0] + multiplier * delta_x, row)
+                    if bound_coordinates is None or Caves.Sensor.coordinates_within_bounds(candidate, bound_coordinates):
+                        visible.add(candidate)
 
             return visible
+
+    class Beacon:
+        def __init__(self, position):
+            self.position = position
+
+        @property
+        def tuning_frequency(self):
+            return self.position[0] * 4000000 + self.position[1]
 
     def __init__(self, input):
         self.sensors : list(Caves.Sensor) = []
@@ -59,16 +75,35 @@ class Caves:
             sensor = Caves.Sensor(position=sensor_position, closest_beacon=closest_beacon)
             self.sensors += [sensor]
 
+    def get_visible_on_row(self, row, bound_coordinates=None):
+        visible_on_row = set()
+        for sensor in self.sensors:
+            visible_on_row = visible_on_row.union(sensor.which_can_see_on_row(row, bound_coordinates))
+        return visible_on_row
+
     def how_many_beaconless_on_row(self, row):
         beacons_on_row = set()
-        visible_on_row = set()
+        visible_on_row = self.get_visible_on_row(row)
         for sensor in self.sensors:
             if sensor.closest_beacon[1] == row:
                 beacons_on_row.add(sensor.closest_beacon)
-            visible_on_row = visible_on_row.union(sensor.which_can_see_on_row(row))
         beaconless_on_row = visible_on_row - beacons_on_row
         return len(beaconless_on_row)
 
+    def find_distress_beacon(self, max_coordinate):
+        """ both x and y are in [0, max_coordinate] """
+        visible_on_row = set()
+        beacon_row = 0
+        bound_coordinates = (0, max_coordinate)
+        for row in range(max_coordinate + 1):
+            visible_on_row = self.get_visible_on_row(row, bound_coordinates=bound_coordinates)
+            if len(visible_on_row) < max_coordinate + 1:
+                beacon_row = row
+                break
+        for x in range(0, max_coordinate + 1):
+            candidate = (x, beacon_row)
+            if candidate not in visible_on_row:
+                return candidate
 
     def __str__(self):
         res = ""
@@ -95,8 +130,11 @@ Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3
 """
     caves = Caves(example_input.splitlines())
-    beaconless_on_row = caves.how_many_beaconless_on_row(10)
+    beaconless_on_row = caves.how_many_beaconless_on_row(row=10)
     assert(beaconless_on_row == 26)
+    distress_beacon = Caves.Beacon(caves.find_distress_beacon(max_coordinate=20))
+    assert(distress_beacon.tuning_frequency == 56000011)
+    print("Unit tests passed")
 
 if __name__ == "__main__":
     main()
