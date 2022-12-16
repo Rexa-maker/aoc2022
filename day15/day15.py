@@ -96,6 +96,7 @@ class Caves:
         beacon_row = 0
         bound_coordinates = (0, max_coordinate)
         for row in range(max_coordinate + 1):
+            print("Considering row {}", str(row))
             visible_on_row = self.get_visible_on_row(row, bound_coordinates=bound_coordinates)
             if len(visible_on_row) < max_coordinate + 1:
                 beacon_row = row
