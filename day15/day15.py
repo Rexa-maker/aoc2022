@@ -12,7 +12,7 @@ def main():
     caves = Caves(lines)
     beaconless_on_row = caves.how_many_beaconless_on_row(2000000)
     print("# of beaconless spots on row 2000000: {}".format(beaconless_on_row))
-    distress_beacon = Caves.Beacon(caves.find_distress_beacon_with_ranges(max_coordinate=4000000))
+    distress_beacon = Caves.Beacon(caves.find_distress_beacon(max_coordinate=4000000))
     print("Distress beacon's tuning frequency: {}".format(distress_beacon.tuning_frequency))
 
 class Range:
@@ -23,7 +23,6 @@ class Range:
         return self.range[0] <= other.range[0] and other.range[1] <= self.range[1]
 
     def overlaps(self, other):
-        # print(self, " overlaps ", other, "?", not (self.range[1] < other.range[0] or other.range[1] < self.range[0]))
         return not (self.range[1] < other.range[0] or other.range[1] < self.range[0])
 
     def immediately_follows(self, other):
@@ -33,7 +32,6 @@ class Range:
         return self.range[0] > other.range[1]
 
     def merge_if_possible(self, other: "Range"):
-        # print(self, " merge if possible w ", other)
         """ Return a range if 2 ranges can become one, or None """
         if self.fully_contains(other):
             return self
@@ -47,6 +45,9 @@ class Range:
             return Range((min(self.range[0], other.range[0]), max(self.range[1], other.range[1])))
         return None
 
+    def __int__(self):
+        return self.range[1] - self.range[0] + 1
+
     def __str__(self):
         return str(self.range)
 
@@ -57,7 +58,6 @@ class Ranges:
         self.ranges = []
 
     def add(self, new_range : Range):
-        # print(self, " adding ", new_range)
         if new_range is None:
             return
         if len(self.ranges) == 0:
@@ -68,14 +68,12 @@ class Ranges:
             if merged is None:
                 continue
 
-            # print("can merge with ", range)
             remaining_ranges = self.ranges[idx + 1:]
             self.ranges = self.ranges[:idx]
 
             idx = 0
             while idx < len(remaining_ranges):
                 new_merged = merged.merge_if_possible(remaining_ranges[idx])
-                # print("merge res ", new_merged)
                 if new_merged is None:
                     self.ranges += [merged] + remaining_ranges[idx:]
                     return
@@ -91,6 +89,9 @@ class Ranges:
 
     def __str__(self):
         return ", ".join(str(range) for range in self.ranges)
+
+    def __int__(self):
+        return sum(int(range) for range in self.ranges)
 
 
 class Caves:
@@ -167,24 +168,17 @@ class Caves:
             sensor = Caves.Sensor(position=sensor_position, closest_beacon=closest_beacon)
             self.sensors += [sensor]
 
-    def get_visible_on_row(self, row, bound_coordinates=None):
-        visible_on_row = set()
-        for sensor in self.sensors:
-            visible_on_row = visible_on_row.union(sensor.which_can_see_on_row(row, bound_coordinates))
-        return visible_on_row
-
     def get_visible_ranges_on_row(self, row, bound_coordinates=None):
         ranges = Ranges()
         for sensor in self.sensors:
             ranges.add(sensor.visible_range_for_row(row, bound_coordinates))
-        # print(str(ranges))
         return ranges
 
-    def find_distress_beacon_with_ranges(self, max_coordinate):
+    def find_distress_beacon(self, max_coordinate):
         """ both x and y are in [0, max_coordinate] """
         bound_coordinates = (0, max_coordinate)
         for row in range(max_coordinate + 1):
-            print("Considering row {}".format(str(row)))
+            # print("Considering row {}".format(str(row)))  # back in the 9s per row days, this was vital
             ranges = self.get_visible_ranges_on_row(row, bound_coordinates=bound_coordinates)
             if len(ranges.ranges) > 1:
                 return (ranges.ranges[0].range[1] + 1, row)
@@ -195,28 +189,11 @@ class Caves:
 
     def how_many_beaconless_on_row(self, row):
         beacons_on_row = set()
-        visible_on_row = self.get_visible_on_row(row)
+        visible_ranges_on_row = self.get_visible_ranges_on_row(row)
         for sensor in self.sensors:
             if sensor.closest_beacon[1] == row:
                 beacons_on_row.add(sensor.closest_beacon)
-        beaconless_on_row = visible_on_row - beacons_on_row
-        return len(beaconless_on_row)
-
-    def find_distress_beacon(self, max_coordinate):
-        """ both x and y are in [0, max_coordinate] """
-        visible_on_row = set()
-        beacon_row = 0
-        bound_coordinates = (0, max_coordinate)
-        for row in range(max_coordinate + 1):
-            print("Considering row {}".format(str(row)))
-            visible_on_row = self.get_visible_on_row(row, bound_coordinates=bound_coordinates)
-            if len(visible_on_row) < max_coordinate + 1:
-                beacon_row = row
-                break
-        for x in range(0, max_coordinate + 1):
-            candidate = (x, beacon_row)
-            if candidate not in visible_on_row:
-                return candidate
+        return int(visible_ranges_on_row) - len(beacons_on_row)
 
     def __str__(self):
         res = ""
@@ -258,8 +235,7 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3
     caves = Caves(example_input.splitlines())
     beaconless_on_row = caves.how_many_beaconless_on_row(row=10)
     assert(beaconless_on_row == 26)
-    distress_beacon = Caves.Beacon(caves.find_distress_beacon_with_ranges(max_coordinate=20))
-    print(distress_beacon)
+    distress_beacon = Caves.Beacon(caves.find_distress_beacon(max_coordinate=20))
     assert(distress_beacon.tuning_frequency == 56000011)
     print("Unit tests passed")
 
