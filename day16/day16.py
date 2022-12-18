@@ -1,5 +1,5 @@
 import re
-from itertools import combinations
+from itertools import permutations
 
 
 def main():
@@ -24,14 +24,22 @@ class Tunnels:
             assert(m)
             self.name = m.group(1)
             self.flow = int(m.group(2))
-            self.others = m.group(3).split(", ")
+            self.others_names = m.group(3).split(", ")
+
+            self.distances = {}
 
         def reset(self):
             self.open = False
 
+        def update_distance_to_valve(self, valve: "Tunnels.Valve", distance):
+            if valve.name not in self.distances or self.distances[valve.name] > distance:
+                self.distances[valve.name] = distance
+                for neighbor in self:
+                    neighbor.update_distance_to_valve(valve, distance + 1)
+
         def __iter__(self):
             """ Iterate on neighbors """
-            for other in self.others:
+            for other in self.others_names:
                 yield self.tunnels.get_valve(other)
 
         def __int__(self):
@@ -42,42 +50,46 @@ class Tunnels:
 
     class Solution:
         def __init__(self, tunnels : "Tunnels"):
-            # list of names of traversed valves, repeated name for an opening action
-            # the idea is to get a "unique solution string" that can be hashed and placed in a set
-            self.valves_names = ""
+            self.valves = []
             self.tunnels = tunnels
 
         @property
         def time_cost(self):
-            return len([valve for valve in self])
+            time = 0
+            valve = self.tunnels.valves[Tunnels.START_VALVE]
+            for next_valve in self:
+                time += valve.distances[next_valve.name] + 1  # go there, open the valve
+                valve = next_valve
+            return time
 
         def add_valve(self, valve):
-            name = valve.name if isinstance(valve, Tunnels.Valve) else valve
-            self.valves_names += " {}".format(name)
-            assert(self.time_cost <= Tunnels.STARTING_TIME)
+            """ Return true iff there is enough time to go and open the added valve and thus the valve was added to the solution"""
+            remaining_time = Tunnels.STARTING_TIME - self.time_cost
+            if len(self.valves) > 0 and valve.distances[self.valves[-1].name] + 1 > remaining_time:
+                print("CANT ADD VALVE {} to [{}]".format(valve.name, str(self)))
+                return False
+            self.valves.append(valve)
+            return True
 
         def __iter__(self):
             """ Iterate over all the valves in the solution """
-            for name in self.valves_names.split(" "):
-                yield self.tunnels.get_valve(name)
+            for valve in self.valves:
+                yield valve
 
         def __int__(self):
             """ Casting a solution to int returns its total pressure """
             pressure = 0
             remaining_time = Tunnels.STARTING_TIME
-            current_valve_name = Tunnels.START_VALVE
-            for name in self.valves_names.split(" "):
-                valve = self.tunnels.get_valve(name)
-                if name == current_valve_name:
-                    pressure += int(valve) * remaining_time
-                else:
-                    current_valve_name = name
-                remaining_time -= 1
-                assert(remaining_time >= 0)
+            valve = self.tunnels.valves[Tunnels.START_VALVE]
+            for next_valve in self:
+                remaining_time -= valve.distances[next_valve.name] + 1
+                pressure += int(next_valve) * remaining_time
+                valve = next_valve
+            assert(remaining_time >= 0)
             return pressure
 
         def __str__(self):
-            return self.valves_names
+            return " -> ".join([valve.name for valve in self.valves])
 
     STARTING_TIME = 30
     START_VALVE = "AA"
@@ -89,9 +101,8 @@ class Tunnels:
                 continue
             valve = Tunnels.Valve(self, line)
             self.valves[valve.name] = valve
-        for valve in self:
-            pass  # TODO
         self.reset_puzzle()
+        self.find_all_distances()
 
     def __str__(self):
         return "\n".join([str(valve) for valve in self])
@@ -100,12 +111,9 @@ class Tunnels:
         for valve in self.valves.values():
             yield valve
 
-    def all_open(self):
-        """ All the valves worth opening are open """
+    def find_all_distances(self):
         for valve in self:
-            if int(valve) != 0 and not valve.open:
-                return False
-        return True
+            valve.update_distance_to_valve(valve, 0)
 
     def get_valve(self, name):
         return self.valves[name]
@@ -129,19 +137,28 @@ class Tunnels:
         return useful_valves
 
     def brute_force(self):
-        tested_solutions = set()
+        best_pressure = 0
+        best_solution = None
 
         useful_valves = self.get_useful_valves()
-        possible_orders = list()
+        print("USEFUL VALVES", ", ".join([valve.name for valve in useful_valves]))
+        possible_orders = set()
         for n in range(len(useful_valves), 0, -1):
-            possible_orders += list(combinations(useful_valves, n))
-        print("\n".join(" ".join(valve.name for valve in order) for order in possible_orders))
+            for permutation in permutations(useful_valves, n):
+                possible_orders.add(tuple(permutation))
         for possible_order in possible_orders:
-            pass  # TODO
+            print("POSSIBLE ORDER", " -> ".join([valve.name for valve in possible_order]))
+            solution = Tunnels.Solution(self)
+            for valve in possible_order:
+                if not solution.add_valve(valve):
+                    break
+            solution_pressure = int(solution)
+            print(solution_pressure, solution)
+            if solution_pressure > best_pressure:
+                best_pressure = solution_pressure
+                best_solution = solution
 
-
-
-
+        return best_solution
 
 def unit_test():
     example_input = """
@@ -157,8 +174,10 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II
 """.splitlines()
     tunnels = Tunnels(example_input)
-    tunnels.brute_force()
-    # TODO
+    best_solution = tunnels.brute_force()
+    print("BEST SOLUTION", best_solution)
+    assert(str(best_solution) == "DD -> BB -> JJ -> HH -> EE -> CC")
+    assert(int(best_solution) == 1651)
     print("unit tests passed")
 
 
