@@ -10,7 +10,7 @@ def heapPermutation(a, size):
     # if size becomes 1 then prints the obtained
     # permutation
     if size == 1:
-        yield a
+        yield deepcopy(a)
         return
 
     for i in range(size):
@@ -191,7 +191,13 @@ class Tunnels:
 def unit_test():
     a = [1, 2, 3]
     n = len(a)
-    assert(list(heapPermutation(a, n)) == [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+    permutations = list(heapPermutation(a, n))
+    assert([1, 2, 3] in permutations)
+    assert([1, 3, 2] in permutations)
+    assert([2, 1, 3] in permutations)
+    assert([2, 3, 1] in permutations)
+    assert([3, 1, 2] in permutations)
+    assert([3, 2, 1] in permutations)
     example_input = """
 Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
 Valve BB has flow rate=13; tunnels lead to valves CC, AA
