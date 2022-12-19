@@ -7,10 +7,11 @@ def main():
 
     file = open('input', 'r')
     lines = file.readlines()
-    # TODO
+    tunnels = Tunnels(lines)
+    best_solution = tunnels.brute_force()
+    print("Best solution {} tallies pressure {}".format(str(best_solution), int(best_solution)))
 
 
-# TODO
 class Tunnels:
     class Valve:
         REGEXP = re.compile(r"^Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? (.*)$")
@@ -66,7 +67,6 @@ class Tunnels:
             """ Return true iff there is enough time to go and open the added valve and thus the valve was added to the solution"""
             remaining_time = Tunnels.STARTING_TIME - self.time_cost
             if len(self.valves) > 0 and valve.distances[self.valves[-1].name] + 1 > remaining_time:
-                print("CANT ADD VALVE {} to [{}]".format(valve.name, str(self)))
                 return False
             self.valves.append(valve)
             return True
@@ -122,7 +122,6 @@ class Tunnels:
         self.current_valve = None
         for valve in self:
             valve.reset()
-            print(valve)
             if valve.name == Tunnels.START_VALVE:
                 self.current_valve = valve
         assert(self.current_valve is not None)
@@ -141,19 +140,18 @@ class Tunnels:
         best_solution = None
 
         useful_valves = self.get_useful_valves()
-        print("USEFUL VALVES", ", ".join([valve.name for valve in useful_valves]))
+        print("{} useful valves found".format(len(useful_valves)))
         possible_orders = set()
-        for n in range(len(useful_valves), 0, -1):
-            for permutation in permutations(useful_valves, n):
-                possible_orders.add(tuple(permutation))
-        for possible_order in possible_orders:
-            print("POSSIBLE ORDER", " -> ".join([valve.name for valve in possible_order]))
+        for permutation in permutations(useful_valves, len(useful_valves)):
+            possible_orders.add(tuple(permutation))
+        print("Found {} possible solutions".format(len(possible_orders)))
+        for idx, possible_order in enumerate(possible_orders):
             solution = Tunnels.Solution(self)
             for valve in possible_order:
                 if not solution.add_valve(valve):
                     break
             solution_pressure = int(solution)
-            print(solution_pressure, solution)
+            print("Solution #{} {} total pressure: {}".format(idx, solution, solution_pressure))
             if solution_pressure > best_pressure:
                 best_pressure = solution_pressure
                 best_solution = solution
@@ -175,7 +173,6 @@ Valve JJ has flow rate=21; tunnel leads to valve II
 """.splitlines()
     tunnels = Tunnels(example_input)
     best_solution = tunnels.brute_force()
-    print("BEST SOLUTION", best_solution)
     assert(str(best_solution) == "DD -> BB -> JJ -> HH -> EE -> CC")
     assert(int(best_solution) == 1651)
     print("unit tests passed")
