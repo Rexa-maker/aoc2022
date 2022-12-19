@@ -1,5 +1,32 @@
 import re
-from itertools import permutations
+from copy import deepcopy
+
+
+# Shamelessly borrowed from https://www.geeksforgeeks.org/heaps-algorithm-for-generating-permutations/
+# Heap's algorithm
+
+# Generating permutation using Heap Algorithm
+def heapPermutation(a, size):
+    # if size becomes 1 then prints the obtained
+    # permutation
+    if size == 1:
+        yield a
+        return
+
+    for i in range(size):
+        yield from heapPermutation(a, size-1)
+
+        # if size is odd, swap 0th i.e (first)
+        # and (size-1)th i.e (last) element
+        # else If size is even, swap ith
+        # and (size-1)th i.e (last) element
+        if size & 1:
+            a[0], a[size-1] = a[size-1], a[0]
+        else:
+            a[i], a[size-1] = a[size-1], a[i]
+
+# This code is contributed by ankush_953
+# This code was cleaned up to by more pythonic by glubs9
 
 
 def main():
@@ -50,9 +77,15 @@ class Tunnels:
             return self.input
 
     class Solution:
-        def __init__(self, tunnels : "Tunnels"):
-            self.valves = []
-            self.tunnels = tunnels
+        def __init__(self, other : "Tunnels"):
+            if isinstance(other, Tunnels):
+                self.valves = []
+                self.tunnels = other
+            elif isinstance(other, Tunnels.Solution):
+                self.valves = deepcopy(other.valves)
+                self.tunnels = other.tunnels
+            else:
+                assert(False)
 
         @property
         def time_cost(self):
@@ -136,29 +169,29 @@ class Tunnels:
         return useful_valves
 
     def brute_force(self):
-        best_pressure = 0
-        best_solution = None
-
         useful_valves = self.get_useful_valves()
         print("{} useful valves found".format(len(useful_valves)))
-        possible_orders = set()
-        for permutation in permutations(useful_valves, len(useful_valves)):
-            possible_orders.add(tuple(permutation))
-        print("Found {} possible solutions".format(len(possible_orders)))
-        for idx, possible_order in enumerate(possible_orders):
+
+        best_solution = None
+        idx = 0
+        for permutation in heapPermutation(useful_valves, len(useful_valves)):
             solution = Tunnels.Solution(self)
-            for valve in possible_order:
+            for valve in permutation:
                 if not solution.add_valve(valve):
                     break
-            solution_pressure = int(solution)
-            print("Solution #{} {} total pressure: {}".format(idx, solution, solution_pressure))
-            if solution_pressure > best_pressure:
-                best_pressure = solution_pressure
+            print("Found solution {}: {} {}".format(idx, int(solution), str(solution)))
+            if best_solution is None or int(best_solution) < int(solution):
                 best_solution = solution
+
+            idx += 1
 
         return best_solution
 
+
 def unit_test():
+    a = [1, 2, 3]
+    n = len(a)
+    assert(list(heapPermutation(a, n)) == [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
     example_input = """
 Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
 Valve BB has flow rate=13; tunnels lead to valves CC, AA
