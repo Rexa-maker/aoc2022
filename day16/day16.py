@@ -2,40 +2,13 @@ import re
 from copy import deepcopy
 
 
-# Shamelessly borrowed from https://www.geeksforgeeks.org/heaps-algorithm-for-generating-permutations/
-# Heap's algorithm
-
-# Generating permutation using Heap Algorithm
-def heapPermutation(a, size):
-    # if size becomes 1 then prints the obtained
-    # permutation
-    if size == 1:
-        yield deepcopy(a)
-        return
-
-    for i in range(size):
-        yield from heapPermutation(a, size-1)
-
-        # if size is odd, swap 0th i.e (first)
-        # and (size-1)th i.e (last) element
-        # else If size is even, swap ith
-        # and (size-1)th i.e (last) element
-        if size & 1:
-            a[0], a[size-1] = a[size-1], a[0]
-        else:
-            a[i], a[size-1] = a[size-1], a[i]
-
-# This code is contributed by ankush_953
-# This code was cleaned up to by more pythonic by glubs9
-
-
 def main():
     unit_test()
 
     file = open('input', 'r')
     lines = file.readlines()
     tunnels = Tunnels(lines)
-    best_solution = tunnels.brute_force()
+    best_solution = tunnels.prune_early()
     print("Best solution {} tallies pressure {}".format(str(best_solution), int(best_solution)))
 
 
@@ -168,36 +141,29 @@ class Tunnels:
                 useful_valves.append(valve)
         return useful_valves
 
-    def brute_force(self):
+    def yield_solutions_for_remaining_valves(self, solution_so_far, remaining_valves):
+        for idx, valve in enumerate(remaining_valves):
+            solution = Tunnels.Solution(solution_so_far)  # Clone solution
+            if solution.add_valve(valve):
+                yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution, remaining_valves=remaining_valves[0:idx] + remaining_valves[idx+1:])
+
+        yield solution_so_far
+
+    def prune_early(self):
         useful_valves = self.get_useful_valves()
         print("{} useful valves found".format(len(useful_valves)))
 
         best_solution = None
         idx = 0
-        for permutation in heapPermutation(useful_valves, len(useful_valves)):
-            solution = Tunnels.Solution(self)
-            for valve in permutation:
-                if not solution.add_valve(valve):
-                    break
+        for solution in self.yield_solutions_for_remaining_valves(Tunnels.Solution(self), useful_valves):
             print("Found solution {}: {} {}".format(idx, int(solution), str(solution)))
             if best_solution is None or int(best_solution) < int(solution):
                 best_solution = solution
-
             idx += 1
-
         return best_solution
 
 
 def unit_test():
-    a = [1, 2, 3]
-    n = len(a)
-    permutations = list(heapPermutation(a, n))
-    assert([1, 2, 3] in permutations)
-    assert([1, 3, 2] in permutations)
-    assert([2, 1, 3] in permutations)
-    assert([2, 3, 1] in permutations)
-    assert([3, 1, 2] in permutations)
-    assert([3, 2, 1] in permutations)
     example_input = """
 Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
 Valve BB has flow rate=13; tunnels lead to valves CC, AA
@@ -211,7 +177,7 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II
 """.splitlines()
     tunnels = Tunnels(example_input)
-    best_solution = tunnels.brute_force()
+    best_solution = tunnels.prune_early()
     assert(str(best_solution) == "DD -> BB -> JJ -> HH -> EE -> CC")
     assert(int(best_solution) == 1651)
     print("unit tests passed")
