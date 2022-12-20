@@ -1,5 +1,4 @@
 import re
-from copy import deepcopy
 
 
 def main():
@@ -53,7 +52,7 @@ class Tunnels:
                 self.remaining_time = Tunnels.STARTING_TIME
                 self.total_pressure = 0
             elif isinstance(other, Tunnels.Solution):
-                self.valves = deepcopy(other.valves)
+                self.valves = other.valves.copy()
                 self.tunnels = other.tunnels
                 self.remaining_time = other.remaining_time
                 self.total_pressure = other.total_pressure
