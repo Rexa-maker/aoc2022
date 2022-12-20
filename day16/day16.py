@@ -19,7 +19,6 @@ class Tunnels:
         def __init__(self, tunnels: "Tunnels", input):
             self.tunnels = tunnels
             self.input = input
-            self.open = False
 
             m = Tunnels.Valve.REGEXP.match(input)
             assert(m)
@@ -28,9 +27,6 @@ class Tunnels:
             self.others_names = m.group(3).split(", ")
 
             self.distances = {}
-
-        def reset(self):
-            self.open = False
 
         def update_distance_to_valve(self, valve: "Tunnels.Valve", distance):
             if valve.name not in self.distances or self.distances[valve.name] > distance:
@@ -54,27 +50,30 @@ class Tunnels:
             if isinstance(other, Tunnels):
                 self.valves = []
                 self.tunnels = other
+                self.remaining_time = Tunnels.STARTING_TIME
+                self.total_pressure = 0
             elif isinstance(other, Tunnels.Solution):
                 self.valves = deepcopy(other.valves)
                 self.tunnels = other.tunnels
+                self.remaining_time = other.remaining_time
+                self.total_pressure = other.total_pressure
             else:
                 assert(False)
 
-        @property
-        def time_cost(self):
-            time = 0
-            valve = self.tunnels.valves[Tunnels.START_VALVE]
-            for next_valve in self:
-                time += valve.distances[next_valve.name] + 1  # go there, open the valve
-                valve = next_valve
-            return time
-
         def add_valve(self, valve):
             """ Return true iff there is enough time to go and open the added valve and thus the valve was added to the solution"""
-            remaining_time = Tunnels.STARTING_TIME - self.time_cost
-            if len(self.valves) > 0 and valve.distances[self.valves[-1].name] + 1 > remaining_time:
+            if self.valves == []:
+                last_valve = self.tunnels.valves[Tunnels.START_VALVE]
+            else:
+                last_valve = self.valves[-1]
+
+            time_cost = last_valve.distances[valve.name] + 1
+            if time_cost > self.remaining_time:
                 return False
+
             self.valves.append(valve)
+            self.remaining_time -= time_cost
+            self.total_pressure += self.remaining_time * valve.flow
             return True
 
         def __iter__(self):
@@ -84,15 +83,7 @@ class Tunnels:
 
         def __int__(self):
             """ Casting a solution to int returns its total pressure """
-            pressure = 0
-            remaining_time = Tunnels.STARTING_TIME
-            valve = self.tunnels.valves[Tunnels.START_VALVE]
-            for next_valve in self:
-                remaining_time -= valve.distances[next_valve.name] + 1
-                pressure += int(next_valve) * remaining_time
-                valve = next_valve
-            assert(remaining_time >= 0)
-            return pressure
+            return self.total_pressure
 
         def __str__(self):
             return " -> ".join([valve.name for valve in self.valves])
@@ -107,7 +98,6 @@ class Tunnels:
                 continue
             valve = Tunnels.Valve(self, line)
             self.valves[valve.name] = valve
-        self.reset_puzzle()
         self.find_all_distances()
 
     def __str__(self):
@@ -124,15 +114,6 @@ class Tunnels:
     def get_valve(self, name):
         return self.valves[name]
 
-    def reset_puzzle(self):
-        self.current_valve = None
-        for valve in self:
-            valve.reset()
-            if valve.name == Tunnels.START_VALVE:
-                self.current_valve = valve
-        assert(self.current_valve is not None)
-        self.remaining_time = Tunnels.STARTING_TIME
-
     def get_useful_valves(self):
         """ return a list of the useful valves """
         useful_valves = []
@@ -142,12 +123,16 @@ class Tunnels:
         return useful_valves
 
     def yield_solutions_for_remaining_valves(self, solution_so_far, remaining_valves):
+        extended_solution = False
         for idx, valve in enumerate(remaining_valves):
             solution = Tunnels.Solution(solution_so_far)  # Clone solution
             if solution.add_valve(valve):
-                yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution, remaining_valves=remaining_valves[0:idx] + remaining_valves[idx+1:])
+                extended_solution = True
+                remaining_valves_without_added = remaining_valves[0:idx] + remaining_valves[idx+1:]
+                yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution, remaining_valves=remaining_valves_without_added)
 
-        yield solution_so_far
+        if not extended_solution:
+            yield solution_so_far
 
     def prune_early(self):
         useful_valves = self.get_useful_valves()
