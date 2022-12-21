@@ -126,18 +126,36 @@ class Tunnels:
 
     def yield_solutions_for_remaining_valves(self, solution_so_far, remaining_valves, num_parallels):
         extended_solution = False
-        for parralel_index in range(num_parallels):
+
+        if num_parallels == 1:
             for idx, valve in enumerate(remaining_valves):
                 solution = Tunnels.Solution(solution_so_far)  # Clone solution
-                if solution.add_valve(valve, parralel_index=parralel_index):
+                if solution.add_valve(valve, parralel_index=0):
                     extended_solution = True
                     remaining_valves_without_added = remaining_valves[0:idx] + remaining_valves[idx+1:]
                     yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution,
                                                                          remaining_valves=remaining_valves_without_added,
                                                                          num_parallels=num_parallels)
 
-        if not extended_solution:
-            yield solution_so_far
+            if not extended_solution:
+                yield solution_so_far
+
+        else:
+            # for each non-first player combination
+            for parralel_index in range(1, num_parallels):
+                for idx, valve in enumerate(remaining_valves):
+                    solution = Tunnels.Solution(solution_so_far)  # Clone solution
+                    if solution.add_valve(valve, parralel_index=parralel_index):
+                        remaining_valves_without_added = remaining_valves[0:idx] + remaining_valves[idx+1:]
+                        # For each valve chosen for another actor, yield all the remaining solutions yielded by actor 0
+                        yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution,
+                                                                            remaining_valves=remaining_valves_without_added,
+                                                                            num_parallels=1)
+                        # Continue testing the other valves on non-first players
+                        yield from self.yield_solutions_for_remaining_valves(solution_so_far=solution,
+                                                                            remaining_valves=remaining_valves_without_added,
+                                                                            num_parallels=num_parallels)
+
 
     def prune_early(self, start_time, num_parallels):
         useful_valves = self.get_useful_valves()
@@ -177,7 +195,7 @@ Valve JJ has flow rate=21; tunnel leads to valve II
     assert(str(best_solution) == "DD -> BB -> JJ -> HH -> EE -> CC")
     assert(int(best_solution) == 1651)
     best_solution = tunnels.prune_early(start_time=Tunnels.ELEPHANT_STARTING_TIME, num_parallels=2)
-    assert(str(best_solution) == "DD -> HH -> EE, JJ -> BB -> CC")
+    assert(str(best_solution) == "JJ -> BB -> CC, DD -> HH -> EE")
     assert(int(best_solution) == 1707)
     print("unit tests passed")
 
